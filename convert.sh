@@ -1,5 +1,5 @@
 losslessToLossy() {
-  if [ "$1" == "flac" ] && [ "$2" == "mp3" ] || [ "$1" == "flac" ] && [ "$2" == "vorbis" ] || [ "$1" == "flac" ] && [ "$2" == "aac" ] || [ "$1" == "alac" ] && [ "$2" == "mp3" ] || [ "$1" == "alac" ] && [ "$2" == "vorbis" ] || [ "$1" == "alac" ] && [ "$2" == "aac" ];
+  if [ "$input" == "flac" ] && [ "$output" == "mp3" ] || [ "$input" == "flac" ] && [ "$output" == "vorbis" ] || [ "$input" == "flac" ] && [ "$output" == "aac" ] || [ "$input" == "alac" ] && [ "$output" == "mp3" ] || [ "$input" == "alac" ] && [ "$output" == "vorbis" ] || [ "$input" == "alac" ] && [ "$output" == "aac" ] || [ "$input" = "wav" ] && [ "$output" == "mp3" ] || [ "$input" = "wav" ] && [ "$output" == "vorbis" ] || [ "$input" = "wav" ] && [ "$output" == "aac" ];
   then
     return true
   else
@@ -8,8 +8,12 @@ losslessToLossy() {
 }
 
 lossyToLossless() {
-  if ["$1" == "mp3" ] && [ "$2" == "flac"] || [ "$1" == "vorbis" ] && [ "$2" == "flac" ] || [ "$1" == "aac" ] && [ "$2" == "flac" ];
+  if ["$input" == "mp3" ] && [ "$output" == "flac"] || [ "$input" == "vorbis" ] && [ "$output" == "flac" ] || [ "$input" == "aac" ] && [ "$output" == "flac" ] || [ "$input" == "mp3" ] && [ "$output" == "alac" ] || [ "$input" == "vorbis" ] && [ "$output" == "alac" ] || [ "$input" == "aac" ] && [ "$output" == "alac" ] || [ "$input" = "mp3" ] && [ "$output" == "wav" ] || [ "$input" = "vorbis" ] && [ "$output" == "wav" ] || [ "$input" = "aac" ] && [ "$output" == "wav" ];
   then
+    return true
+  else
+    return false
+  fi
 }
 
 while getopts i:o:q flag
@@ -29,14 +33,19 @@ then
   echo "-q {output file quality}"
 elif [ losslessToLossy ]
 then
-  # mkdir alac
-  # for i in *.flac;
-  # do
-    # echo "Element: $i"
-    # ffmpeg -i "$i" -vcodec copy -acodec alac "${i%.flac}".m4a;
-    # mv "${i%.flac}".m4a ./alac;
-  # done
-  echo "Hello"
+  if [ "$output" == "vorbis" ];
+  then
+    extension="ogg"
+  else
+    extension="$output"
+  fi
+  mkdir "$output"
+  for i in *."$input";
+  do
+    echo "Element: $i"
+    ffmpeg -i "$i" -vcodec copy -acodec "$output" "${i%.flac}"."$extension";
+    mv "${i%.flac}"."$extenion" ./"$output";
+  done
 else
   echo "You entered not supported formats"
 fi
