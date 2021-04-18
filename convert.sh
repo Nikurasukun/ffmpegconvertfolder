@@ -39,7 +39,7 @@ inputogg() { # Change the file extension of the output to ogg instead of libvorb
 options() { # List available options
   echo "-i {input file type}"
   echo "-o {output file type}"
-  echo "-q {output file quality}"
+  echo "-q {output file bitrate}"
   echo "help           Print the help dialogue"
 }
 
@@ -105,14 +105,14 @@ else
       then
         if [ ! -z "$quality" ];
         then
-          ffmpeg -i "$i" -vsync 2 -acodec "$output" -q:a "$quality" "$outputfilename";
+          ffmpeg -i "$i" -vsync 2 -acodec "$output" -b:a "$quality" "$outputfilename";
         else
           ffmpeg -i "$i" -vsync 2 -acodec "$output" "$outputfilename";
         fi
       else
         if [ ! -z "$quality" ];
         then
-          ffmpeg -i "$i" -vcodec copy -acodec "$output" -q:a "$quality" "$outputfilename";
+          ffmpeg -i "$i" -vcodec copy -acodec "$output" -b:a "$quality" "$outputfilename";
         else
           ffmpeg -i "$i" -vcodec copy -acodec "$output" "$outputfilename";
         fi
@@ -127,14 +127,14 @@ else
     then
       inputogg
       mkdir "$output"
-      for i in *."$input";
+      for i in *."$extension";
       do
-        outputfilename=$(basename "$i" "$input")$output # get the outputfilename
+        outputfilename=$(basename "$i" "$extension")$output # get the outputfilename
         echo "$outputfilename"
         echo "Element: $i"
         if [ ! -z "$quality" ];
         then
-          ffmpeg -i "$i" -vcodec copy -acodec "$output" -q:a "$quality" "$outputfilename";
+          ffmpeg -i "$i" -vcodec copy -acodec "$output" -b:a "$quality" "$outputfilename";
         else
           ffmpeg -i "$i" -vcodec copy -acodec "$output" "$outputfilename";
         fi
