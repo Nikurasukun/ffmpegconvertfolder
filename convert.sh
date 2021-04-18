@@ -1,5 +1,25 @@
+typeoffirstparameter() {
+  if [ "$input" == "flac" ] || [ "$input" == "wav" ] || [ "$input" == "alac" ];
+  then
+    inputfiletype="lossless"
+  elif [ "$input" == "mp3" ] || [ "$input" == "libvorbis" ] || [ "$input" == "aac" ];
+  then
+    inputfiletype="lossy"
+  fi
+}
+
+typeofsecondparameter() {
+  if [ "$output" == "flac" ] || [ "$output" == "wav" ] || [ "$output" == "alac" ];
+  then
+    outputfiletype="lossless"
+  elif [ "$output" == "mp3" ] || [ "$output" == "libvorbis" ] || [ "$output" == "aac" ];
+  then
+    outputfiletype="lossy"
+  fi
+}
+
 losslessToLossy() {
-  if [ "$input" == "flac" ] && [ "$output" == "mp3" ] || [ "$input" == "flac" ] && [ "$output" == "vorbis" ] || [ "$input" == "flac" ] && [ "$output" == "aac" ] || [ "$input" == "alac" ] && [ "$output" == "mp3" ] || [ "$input" == "alac" ] && [ "$output" == "vorbis" ] || [ "$input" == "alac" ] && [ "$output" == "aac" ] || [ "$input" = "wav" ] && [ "$output" == "mp3" ] || [ "$input" = "wav" ] && [ "$output" == "vorbis" ] || [ "$input" = "wav" ] && [ "$output" == "aac" ];
+  if [ "$inputfiletype" == "lossless" ] && [ "$outputfiletype" == "lossy" ];
   then
     return true
   else
@@ -8,7 +28,7 @@ losslessToLossy() {
 }
 
 lossyToLossless() {
-  if ["$input" == "mp3" ] && [ "$output" == "flac"] || [ "$input" == "vorbis" ] && [ "$output" == "flac" ] || [ "$input" == "aac" ] && [ "$output" == "flac" ] || [ "$input" == "mp3" ] && [ "$output" == "alac" ] || [ "$input" == "vorbis" ] && [ "$output" == "alac" ] || [ "$input" == "aac" ] && [ "$output" == "alac" ] || [ "$input" = "mp3" ] && [ "$output" == "wav" ] || [ "$input" = "vorbis" ] && [ "$output" == "wav" ] || [ "$input" = "aac" ] && [ "$output" == "wav" ];
+  if [ "$inputfiletype" == "lossy" ] && [ "$outputfiletype" == "lossless" ];
   then
     return true
   else
@@ -16,7 +36,25 @@ lossyToLossless() {
   fi
 }
 
-while getopts i:o:q flag
+outputogg() {
+  if [ "$output" == "libvorbis" ];
+  then
+    extension="ogg"
+  else
+    extension="$output"
+  fi
+}
+
+inputogg() {
+  if [ "$input" == "libvorbis" ];
+  then
+    extension="ogg"
+  else
+    extension="$input"
+  fi
+}
+
+while getopts i:o:q: flag
 do
     case "${flag}" in
         i) input=${OPTARG};;
@@ -24,28 +62,68 @@ do
         q) quality=${OPTARG};;
     esac
 done
-
-if [ "$input" == "" ] && [ "$output" == "" ] && ["$quality" == ""];
+typeoffirstparameter
+typeofsecondparameter
+echo "$inputfiletype"
+echo "$outputfiletype"
+echo "$quality"
+if [ "$input" == "" ] && [ "$output" == "" ] && [ "$quality" == "" ];
 then
   echo "No Parameter given"
   echo "-i {input file type}"
   echo "-o {output file type}"
   echo "-q {output file quality}"
-elif [ losslessToLossy ]
+elif [ "$inputfiletype" == "lossless" ] && [ "$outputfiletype" == "lossy" ];
 then
-  if [ "$output" == "vorbis" ];
-  then
-    extension="ogg"
-  else
-    extension="$output"
-  fi
+  outputogg
   mkdir "$output"
   for i in *."$input";
   do
+    outputfilename=$(basename "$i" "$input")$extension
+    echo "$outputfilename"
     echo "Element: $i"
-    ffmpeg -i "$i" -vcodec copy -acodec "$output" "${i%.flac}"."$extension";
-    mv "${i%.flac}"."$extenion" ./"$output";
+    if [ "$output" == "libvorbis" ]
+    then
+      if [ ! -z "$quality" ];
+      then
+        ffmpeg -i "$i" -vsync 2 -acodec "$output" -q:a "$quality" "$outputfilename";
+      else
+        ffmpeg -i "$i" -vsync 2 -acodec "$output" "$outputfilename";
+      fi
+    else
+      if [ ! -z "$quality" ];
+      then
+        ffmpeg -i "$i" -vcodec copy -acodec "$output" -q:a "$quality" "$outputfilename";
+      else
+        ffmpeg -i "$i" -vcodec copy -acodec "$output" "$outputfilename";
+      fi
+    fi
+    mv "$outputfilename" ./"$output";
   done
+elif [ "$inputfiletype" == "lossy" ] && [ "$outputfiletype" == "lossless" ];
+then
+  echo "You are about to convert a lossy file in a lossless format! Do you really want to do this? (y/N)"
+  read shure
+  if [ "$shure" == "Y" ] || [ "$shure" == "y" ] || [ "$shure" == "yes" ] || [ "$shure" == "Yes" ];
+  then
+    inputogg
+    mkdir "$output"
+    for i in *."$input";
+    do
+      outputfilename=$(basename "$i" "$input")$output
+      echo "$outputfilename"
+      echo "Element: $i"
+      if [ ! -z "$quality" ];
+      then
+        ffmpeg -i "$i" -vcodec copy -acodec "$output" -q:a "$quality" "$outputfilename";
+      else
+        ffmpeg -i "$i" -vcodec copy -acodec "$output" "$outputfilename";
+      fi
+      mv "$outputfilename" ./"$output";
+    done
+  else
+  echo "Cancel"
+  fi
 else
   echo "You entered not supported formats"
 fi
